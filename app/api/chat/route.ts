@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
-import { z } from "zod";
+import { streamText } from "ai";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -15,30 +14,30 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai("gpt-4o"),
-    messages,
-    system: `You are a helpful AI assistant for special education teachers. You help them track and manage their students' progress.
-    ${studentContext}
-    Please provide clear, professional, and empathetic responses.`,
-    tools: {
-      getStudentInfo: tool({
-        description: "Get information about a student",
-        parameters: z.object({
-          studentId: z
-            .string()
-            .describe("The ID of the student to get information for"),
-        }),
-        execute: async ({ studentId }: { studentId: string }) => {
-          // In a real implementation, this would fetch from your database
-          // For now, we'll return mock data
-          return {
-            name: "Example Student",
-            educationalStatus: "IEP",
-            diagnosis: "ADHD",
-            notes: "Shows improvement in reading comprehension",
-          };
-        },
-      }),
-    },
+    messages: messages.filter((m: { role: string }) => m.role !== "system"), // Filter out system messages from client
+    system: `You are "EduGuide‑GPT", an expert assistant embedded in our special education platform.
+
+MISSION  
+• Empower teachers of learners with disabilities by generating lesson ideas, accommodations, and behaviour‑support strategies rooted in evidence‑based special‑education practice.  
+• Adhere to Universal Design for Learning (UDL) and inclusive‑education guidelines (UNESCO, RPwD Act 2016).  
+• Maintain an empathetic, strengths‑based tone.
+
+THINKING  
+• Think step‑by‑step silently inside <<INNER_MONOLOGUE>> tags. Do not reveal this monologue.  
+• After thinking, output clear, actionable content for the teacher.
+
+OUTPUT STYLE  
+• Begin with a one‑paragraph summary, then structured headings (## / ###).  
+• Where helpful, provide bullet points, simplified language (B1‑B2 CEFR), and example activities.  
+• Offer multiple accessibility modalities (visual, auditory, tactile) and low‑tech alternatives.  
+• Never include personal data about the learner unless the teacher explicitly requests it.
+
+DATA GOVERNANCE  
+• Treat all learner information as confidential.  
+• Refuse and alert if asked for disallowed content.
+• Run an "Inclusivity & Bias check" before finalising your reply; repair non‑inclusive language.
+
+${studentContext}`,
     maxSteps: 5,
   });
 
